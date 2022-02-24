@@ -62,6 +62,7 @@ const schema = getJSON(connection)
     }
     // writing enum to dbdiagram text file ▸
     fs.writeFileSync('./dbdiagram.txt', processFileEnum(enums), { flag: 'a+' }, err => {})
+    console.log('dbdiagram schema generated')
     return schema
   })
   .catch(err => {
@@ -157,28 +158,5 @@ function processDefault (data) {
       : `'${data}'`
 }
 
-
+// dont ask why this is here
 var converter = require('pg-tables-to-jsonschema');
- 
-// converter({
-//   pg: {
-//     host: 'localhost',
-//     port: 5432,
-//     user: 'admin',
-//     password: 'secret',
-//     database: 'db_name',
-//   },
-//   input: {
-//     schemas: ['public', 'stuff'],
-//     exclude: ['not_this_table'],
-//     include: []
-//   },
-//   output: {
-//     additionalProperties: false,
-//     baseUrl: 'http://api.localhost.com/schema/',
-//     defaultDescription: 'Missing description',
-//     indentSpaces: 2,
-//     outDir: 'dist/schema',
-//     unwrap: false
-//   }
-// });
