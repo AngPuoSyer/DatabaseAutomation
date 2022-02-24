@@ -9,9 +9,10 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "csv-writer": "^1.6.0",
     "dotenv": "^16.0.0",
     "lodash": "^4.17.21",
-    "pg-json-schema-export": "^0.13.7"
+    "pg-json-schema-export": "^0.13.7",
+    "pg-tables-to-jsonschema": "^1.0.5",
+    "xlsx": "^0.18.2"
   }
 }

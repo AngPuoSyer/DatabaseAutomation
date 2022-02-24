@@ -1,23 +1,33 @@
 const PostgresSchema = require('pg-json-schema-export');
 const _ = require('lodash')
 const fs = require('fs')
-const createCsvWriter = require('csv-writer').createObjectCsvWriter
 const EventEmitter = require('events')
+const XLSX = require('xlsx')
+require('dotenv').config()
+
 
 const connection = {
-user: process.env.DB_CONNECTION,
-password: process.env.DB_PASSWORD,
-host: process.env.DB_HOST,
-port: process.env.DB_PORT,
-database: process.env.DB_DATABASE,
+  user: process.env.DB_CONNECTION,
+  password: process.env.DB_PASSWORD,
+  host: process.env.DB_HOST,
+  port: process.env.DB_PORT,
+  database: process.env.DB_DATABASE,
 };
 
-function getJSON(connection) {
-  return PostgresSchema.toJSON(connection, 'public')
+// ignore
+const eventEmitter = new EventEmitter();
+
+eventEmitter.on('myevent', schema => {
+  console.log(schema)
+})
+
+async function getJSON(connection) {
+  return await PostgresSchema.toJSON(connection, 'public')
 } 
 
 const wholeSchema = {}
 const enums = new Set()
+const wb = XLSX.utils.book_new()
 
 // Tables to be excluded from the database
 const omitTable = ['migrations', 'third_party_identities', 'notification', 'geography_columns', 'geometry_columns', 'spatial_ref_sys']
@@ -25,11 +35,13 @@ const omitTable = ['migrations', 'third_party_identities', 'notification', 'geog
 const schema = getJSON(connection)
   .then((schema) => {
     eventEmitter.emit('myevent', schema)
+    
     for(let [key, value] of Object.entries(schema.tables)){
       if(omitTable.includes(key)) continue
       table2csv(value.columns, key)
       wholeSchema[key] = value.columns
     }
+    XLSX.writeFile(wb, 'tables.xlsx')
     return schema
   })
   .then(schema => {
@@ -39,6 +51,11 @@ const schema = getJSON(connection)
         wholeSchema[key][constraintsKey].constraints = constraintsValues
        
     }
+    try{
+      fs.unlinkSync('./dbdiagram.txt')
+    }catch(e){
+      console.log('Creating text file for dbdiagram schema')
+    }
     // writing dbdiagram schema text file ▸
     for(let [key, value] of Object.entries(wholeSchema)){
       fs.writeFileSync('./dbdiagram.txt', table2dbd(key, value), { flag: 'a+' }, err => {})
@@ -47,25 +64,16 @@ const schema = getJSON(connection)
     fs.writeFileSync('./dbdiagram.txt', processFileEnum(enums), { flag: 'a+' }, err => {})
     return schema
   })
-  .catch(err => console.log(err))
+  .catch(err => {
+    console.log(err)
+  })
 
+console.log(schema)
 
 function table2csv (table, tableName) {
   console.log(`Processing ${tableName}`)
   const tableClone = { ...table}
-
-  // csv output configuration
-  const csvWriter = createCsvWriter({
-    path: `csv/${tableName}.csv`,
-    //csv headers
-    header: [
-      {id: 'column_name', title: 'Column Name'},
-      {id: 'data_type', title: 'Data Type'},
-      {id: 'is_nullable', title: 'Nullable'},
-      {id: 'column_default', title: 'Default Value'},
-    ]
-  });
-  const data = []
+  const data = [['Column Name', 'Data Type', 'Nullable', 'Default']]
   for(let [key, value] of Object.entries(tableClone)){
     // remove useless values
     const col = _.omit(value, ['table_schema', 'table_name', 'col_description'])
@@ -80,16 +88,12 @@ function table2csv (table, tableName) {
     else if(col.data_type === 'character varying') col.data_type = 'varchar'
     else if(col.data_type === 'timestamp with time zone') col.data_type = 'timestamptz'
     else if(col.data_type === 'timestamp without time zone') col.data_type = 'timestamp'
-    data.push(col)
+    data.push([col.column_name, col.data_type, col.is_nullable, col.column_default])
   }
-
-  // writing to csv
-  csvWriter
-  .writeRecords(data)
-  .then(()=> console.log(`The CSV file ${tableName} is created successfully`));
+  const ws = XLSX.utils.aoa_to_sheet(data);
+  XLSX.utils.book_append_sheet(wb, ws, tableName)
+  console.log(`Table ${tableName} added to worksheet`)
 }
-
-
 
 function table2dbd (tableName, table) {
   let firstLine = 'Table ' + tableName + ' {'
@@ -153,9 +157,28 @@ function processDefault (data) {
       : `'${data}'`
 }
 
-// ignore
-const eventEmitter = new EventEmitter();
 
-eventEmitter.on('myevent', schema => {
-  console.log(schema)
-})
+var converter = require('pg-tables-to-jsonschema');
+ 
+// converter({
+//   pg: {
+//     host: 'localhost',
+//     port: 5432,
+//     user: 'admin',
+//     password: 'secret',
+//     database: 'db_name',
+//   },
+//   input: {
+//     schemas: ['public', 'stuff'],
+//     exclude: ['not_this_table'],
+//     include: []
+//   },
+//   output: {
+//     additionalProperties: false,
+//     baseUrl: 'http://api.localhost.com/schema/',
+//     defaultDescription: 'Missing description',
+//     indentSpaces: 2,
+//     outDir: 'dist/schema',
+//     unwrap: false
+//   }
+// });
