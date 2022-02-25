@@ -21,8 +21,8 @@ eventEmitter.on('myevent', schema => {
   console.log(schema)
 })
 
-async function getJSON(connection) {
-  return await PostgresSchema.toJSON(connection, 'public')
+function getJSON(connection) {
+  return PostgresSchema.toJSON(connection, 'public')
 } 
 
 const wholeSchema = {}
@@ -30,7 +30,7 @@ const enums = new Set()
 const wb = XLSX.utils.book_new()
 
 // Tables to be excluded from the database
-const omitTable = ['migrations', 'third_party_identities', 'notification', 'geography_columns', 'geometry_columns', 'spatial_ref_sys']
+const omitTable = ['migrations', 'third_party_identities', 'geography_columns', 'geometry_columns', 'spatial_ref_sys', 'notification']
 
 const schema = getJSON(connection)
   .then((schema) => {
@@ -62,14 +62,13 @@ const schema = getJSON(connection)
     }
     // writing enum to dbdiagram text file ▸
     fs.writeFileSync('./dbdiagram.txt', processFileEnum(enums), { flag: 'a+' }, err => {})
+    fs.writeFileSync('./dbdiagram.txt', `\n // Last Updated At: ${new Date().toISOString().split('T')[0]}`, { flag: 'a+' }, err => {})
     console.log('dbdiagram schema generated')
     return schema
   })
   .catch(err => {
     console.log(err)
   })
-
-console.log(schema)
 
 function table2csv (table, tableName) {
   console.log(`Processing ${tableName}`)
@@ -159,4 +158,3 @@ function processDefault (data) {
 }
 
 // dont ask why this is here
-var converter = require('pg-tables-to-jsonschema');
