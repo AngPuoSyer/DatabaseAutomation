@@ -239,7 +239,7 @@ function table2csv(table, tableName) {
                 new Paragraph({
                   children: [
                     new TextRun({
-                      text: `  ${data || ''}`,
+                      text: `  ${String(data) !== 'null' ? String(data) : ''}`,
                       ...standardDocStlyes,
                     }),
                   ],
