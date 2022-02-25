@@ -9,6 +9,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "docx": "^7.3.0",
     "dotenv": "^16.0.0",
     "lodash": "^4.17.21",
     "pg-json-schema-export": "^0.13.7",
