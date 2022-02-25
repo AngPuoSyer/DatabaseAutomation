@@ -20,7 +20,6 @@ function myFunction() {
   for(const sheet of sheets){
     // operation for each sheet
     const sheetName = sheet.getName()
-    if(omitTable.includes(sheetName)) continue
 
     // get the first 30 columns, can change the values based on your situation
     const values = sheet.getRange('A1:D30').getValues()
